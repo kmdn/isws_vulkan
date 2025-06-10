@@ -1,0 +1,27 @@
+life of Agnolo Montorsoli: 0, 1
+life of Agnolo and Agostino da Siena: 2, 3
+life of Baccio Bandinelli: 4, 5
+life of Brunelleschi: 6, 7
+life of Bugiardini: 8, 9
+life of Marco Calavrese: 10, 11
+life of Piero di Cosimo: 12, 13
+life of Girolamo Siciolante and other Craftsmen: 14, 15
+life of Giovanno dal Ponte: 16, 17
+life of Del Sarto: 18, 19
+life of Galasso Ferrarese: 20, 12
+life of Antonio da San Gallo The Younger: 22, 23
+life of Giovanni Giocondo: 24, 25
+life of Giotto: 26, 27
+life of Granacci: 28, 29
+life of Jacopo and Francesco Torni: 30, 31
+life of Leon Battista Alberti: 32, 33
+life of Michelangelo: 34, 35
+life of Nanni di Banco: 36, 37
+life of Jacopo Palma: 38, 39
+life of Parri Spinelli: 40, 41
+life of Raffaello: 42, 43
+life of Ridolfo Ghirlandaio: 44, 45
+life of Michele San Michele: 46, 47
+life of Tiziano: 48, 49
+life of Verrocchio: 50, 51
+life of Federico Zucchero: 52, 53
