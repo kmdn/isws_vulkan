@@ -1,7 +1,8 @@
 import os
+import json
 import csv
 from transformers import pipeline
-
+from openai import OpenAI
 
 def get_english_sentences(filepath):
     """ Reads English sentences from CSV file (sentences.csv).
@@ -33,7 +34,7 @@ def translate_with_mistral(english_text):
     # Load Mistral pipeline with chat template support
     pipe = pipeline(
         "text-generation",
-        model="unsloth/llama-3-8b",#"mistralai/Mistral-7B-v0.1",#"meta-llama/Meta-Llama-3-8B-Instruct",# #
+        model="mistralai/Mistral-7B-v0.1",#"unsloth/llama-3-8b",#"mistralai/Mistral-7B-v0.1",#"meta-llama/Meta-Llama-3-8B-Instruct",# #
         torch_dtype="auto",
         device_map="auto"
     )
@@ -61,6 +62,30 @@ def translate_with_mistral(english_text):
     italian_translation = response[0]['generated_text'][-1]['content'].strip()
     
     return italian_translation
+
+
+def translate_with_deepseek(english_text, prompt_file='./prompt_translation.txt', out_response_path='./response.txt'):
+    # Load API key from file
+    api_key_file = ".deepseek_api_key.txt"
+    with open(api_key_file, "r") as f:
+        DEEPSEEK_API_KEY = f.read().strip()
+
+    # Init LLM client
+    client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        #messages=[
+        #    {"role": "system", "content": "You are a helpful assistant, an expert at generating new mentions for entity linking tasks."},
+        #    {"role": "user", "content": prompt},
+        #],
+        messages = [
+                {"role": "system", "content": "You are an Italian expert on art history and a professional English-Italian translator. Given an English text from Giorgio Vasari's \"Lives of The Artists\" (Original title: Le vite de' più eccellenti pittori, scultori e architettori), provide only the original Italian text without any explanations or additional text."},
+                {"role": "user", "content": english_text}#f"{prompt}:\n\n{english_text}"}
+            ],
+            stream=False,
+            max_tokens=8000
+        )
+    return response.choices[0].message.content.strip()
 
 
 def translate_with_llama3(english_text):
@@ -115,9 +140,36 @@ def translate_with_helsinki_nlp(english_text):
     return translated_text
 
 
+def load_json_cache(filepath="./translation_cache.json"):
+    """ Loads the JSON cache file if it exists.
+    Returns:
+        dict: The loaded JSON data or an empty dictionary if the file does not exist.
+    """
+    cache_file = filepath
+    if os.path.exists(cache_file):
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
 
-def translate_english_to_italian(english_text, variant=2):
-    """ Map English text to Italian text by using translations or LLMs.
+def add_to_cache(cache, english_text, italian_translation, replace_if_exists=False):
+    entry = cache.get(english_text, None)
+
+    if entry is None or replace_if_exists:
+        cache[english_text] = italian_translation
+
+def save_json_cache(cache, filepath="./translation_cache.json"):
+    """ Saves the JSON cache to a file.
+    Args:
+        cache (dict): The cache data to save.
+        filepath (str): The path to the cache file.
+    """
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(cache, f, ensure_ascii=False, indent=4)
+    print(f"Cache saved to {filepath}")
+
+def translate_english_to_italian(english_text, variant=3):
+    """ We call it "translate", but actually it's a semi-translate and mostly map 
+        English text to Italian text by using translations or LLMs.
     Args:
         english_text (str): The English text to translate.
     Returns:
@@ -134,6 +186,8 @@ def translate_english_to_italian(english_text, variant=2):
             # "Translate" the text with Mistral
             translated_text = translate_with_mistral(english_text)
             return translated_text
+        case 3:
+            return translate_with_deepseek(english_text, prompt_file='./prompt_translation.txt')
         case _:
             raise ValueError("Invalid translation variant specified. Use 0 for Helsinki-NLP, 1 for LLAMA3, or 2 for Mistral.")
     
@@ -255,6 +309,21 @@ def analyze_translation_similarity(english_text, italian_text, min_length):
         'similarity_ratio': similarity_ratio
     }
 
+def get_italian_sentences(filepath):
+    """ Reads Italian sentences from a TXT file.
+    Args:
+        filepath (str): Path to the file containing Italian sentences.
+    Returns:
+        list: List of Italian sentences.
+    """
+    with open(filepath, 'r', encoding='utf-8') as file:
+        italian_sentences = file.readlines()
+    
+    # Clean up sentences
+    italian_sentences = [sentence.strip() for sentence in italian_sentences if sentence.strip()]
+    
+    return italian_sentences
+
 
 
 if __name__ == "__main__":
@@ -266,9 +335,24 @@ if __name__ == "__main__":
     ANALYSE_TRANSLATED_SIMILARITY = True
 
     english_sentences = get_english_sentences(DATA_DIR + 'sentences.csv')
+    # Get the original Italian sentences from the TXT file found at
+    # https://it.wikisource.org/wiki/Le_vite_de%27_pi%C3%B9_eccellenti_pittori,_scultori_e_architettori_%281568%29
+    original_italian_sentences = get_italian_sentences(DATA_DIR + "Le_vite_de'_più_eccellenti_pittori,_scultori_e_architettori_(1568).txt")
 
     english_text = english_sentences[0]
+
+
     italian_translation = translate_english_to_italian(english_text)
+    # Load cache from file
+    cache = load_json_cache()
+    add_to_cache(cache, english_text, italian_translation, replace_if_exists=False)
+    out_response_path = "./response.txt"
+    # Save the response to a file
+    #print(response.choices[0].message.content)
+    with open(out_response_path, "w") as f:
+        f.write(italian_translation)
+        print("Saved: ", out_response_path)
+
 
     print(f"English: {english_text}")
     print(f"Italian: {italian_translation}")

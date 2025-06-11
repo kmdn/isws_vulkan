@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# API keys and secrets
+.env
+.deepseek_api_key.txt
+
 # C extensions
 *.so
 
